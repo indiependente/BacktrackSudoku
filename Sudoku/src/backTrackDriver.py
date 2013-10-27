@@ -3,7 +3,7 @@ from Sudoku import Sudoku
 FileName='repubblica.txt'
 with open(FileName) as myfile:
     for line in myfile:
-        problem=Sudoku(line)
+        problem=Sudoku(line,True)
         if problem.BackTrack():
             print("Solution computed")
             print(problem)

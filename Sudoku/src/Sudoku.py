@@ -1,10 +1,12 @@
 from SearchProblem import SearchProblem
 from math import sqrt
 
-
+#forbidden values matrix with update and remove methods
+#smarter Gamma function
 class Sudoku(SearchProblem):
 	
 	emptySymbol = 0 # empty cells contain 0
+	forbidden = list() #forbidden values list
 
 	def __init__(self,line,verbose=False):
 		self.verbose=verbose
@@ -23,7 +25,20 @@ class Sudoku(SearchProblem):
 				self.istance.append(ROW)
 				self.partial.append(list(ROW))
 				ROW = []
-			
+		for row in range(self.n):
+			self.forbidden.append(list())
+			for col in range(self.n):
+				self.forbidden[row].append(list())
+		for row in range(self.n):
+			for col in range(self.n):
+				if self.partial[row][col] != self.emptySymbol:
+					self.update(row,col)
+		if self.verbose:
+			print("INIT: Forbidden values are")
+			for r in range(self.n):
+				for c in range(self.n):
+					print(str(r)+"-"+str(c)+": "+str(self.forbidden[r][c]))
+
 	def enumerateSI(self,row=0,col=0):
 		if row == self.n: #we have a complete grid!
 			yield self.partial
@@ -109,7 +124,11 @@ class Sudoku(SearchProblem):
 		
 
 	def setNextEmpty(self,current,digit):
+		self.current = current
+		if digit == self.emptySymbol:
+			self.remove(current[0],current[1])
 		self.partial[current[0]][current[1]] = digit
+		self.update(current[0],current[1])
 
 	def computeNextEmpty(self,current):
 		if current==None:
@@ -133,10 +152,16 @@ class Sudoku(SearchProblem):
 
 	def isNotExtendible(self):
 		self.count += 1
+		if len(set(self.forbidden[self.current[0]][self.current[1]]))== self.n:
+			return True
 		return not self.isAdmissible()
 		
 	def Gamma(self,current):
-		for gamma in range(self.n):
+		gammaSet = set(range(self.n)).difference(set(self.forbidden[current[0]][current[1]]))
+		if self.verbose:
+			print("Yielded Values for "+str(current[0])+"-"+str(current[1])+":")
+			print(sorted(gammaSet))
+		for gamma in sorted(gammaSet):
 			yield gamma+1
 
 	def __str__(self):
@@ -155,3 +180,43 @@ class Sudoku(SearchProblem):
 					s += " "+str(self.partial[row][col])+" "
 			s += "\n"
 		return s
+	
+	def whatsmycorner(self,row,col):
+		r = int(row / self.sn) * self.sn
+		c = int(col / self.sn) * self.sn
+		return [r,c]
+
+	def update(self,row,col):
+		if self.verbose:
+			print("Updating forbidden values")
+		x = self.partial[row][col]
+		for c in range(self.n):
+			self.forbidden[row][c].append(x)
+		
+		for r in range(self.n):
+			self.forbidden[r][col].append(x)
+
+		corner = self.whatsmycorner(row,col)	
+		if self.verbose:
+			print(str(row)+"-"+str(col)+" belongs to submatrix: "+str(corner[0])+str(corner[1]))
+		for r in range(self.sn):
+			for c in range(self.sn):
+				self.forbidden[corner[0]+r][corner[1]+c].append(x)
+
+	def remove(self,row,col):
+		if self.verbose:
+			print("Updating forbidden values")
+		x = self.partial[row][col]
+		
+		for c in range(self.n):
+			self.forbidden[row][c].remove(x)
+		
+		for r in range(self.n):
+			self.forbidden[r][col].remove(x)
+
+		corner = self.whatsmycorner(row,col)	
+
+		for r in range(self.sn):
+			for c in range(self.sn):
+				self.forbidden[corner[0]+r][corner[1]+c].remove(x)
+
